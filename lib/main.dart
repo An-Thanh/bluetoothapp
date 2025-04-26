@@ -83,7 +83,7 @@ class _BluetoothHomePageState extends State<BluetoothHomePage> {
         try {
           double speed = double.parse(message.trim());
           setState(() {
-            currentSpeed = speed;
+            currentSpeed = (speed / 255 * 9).clamp(0, 9);
             _isSpeedReceived = true; // Only set once
           });
         } catch (e) {

@@ -53,6 +53,8 @@ class _BluetoothHomePageState extends State<BluetoothHomePage> {
   bool _isScanning = false;
   bool _isConnected = false;
   String _connectedDeviceAddress = "";
+  String message = "";
+  bool isSended = false;
 
   // Stream-related
   Stream<Device>? _discoveryStream;
@@ -74,21 +76,44 @@ class _BluetoothHomePageState extends State<BluetoothHomePage> {
 
   void _listenToData() {
     _dataSubscription =
-        _bluetoothClassic.onDeviceDataReceived().listen((Uint8List event) {
+      _bluetoothClassic.onDeviceDataReceived().listen((Uint8List event) {
       setState(() {
-        _receivedData = Uint8List.fromList([..._receivedData, ...event]);
+      _receivedData = Uint8List.fromList([..._receivedData, ...event]);
       });
-      String message = String.fromCharCodes(_receivedData);
-      if (!message.contains("message:") && !_isSpeedReceived) {
-        try {
-          double speed = double.parse(message.trim());
-          setState(() {
-            currentSpeed = (speed / 255 * 9).clamp(0, 9);
-            _isSpeedReceived = true; // Only set once
-          });
-        } catch (e) {
-          print("Parse speed failed: $e");
-        }
+      String mess = String.fromCharCodes(_receivedData);
+      _receivedData = Uint8List.fromList([]);
+      switch (mess) {
+      case "R":
+       setState(() {
+          message = "Right";
+        });
+        break;
+      case "L":
+        setState(() {
+           message = "Left";
+        });
+       
+        break;
+      case "B":
+        setState(() {
+           message = "Bottom";
+        });
+        break;
+      case "F":
+        setState(() {
+           message = "Front";
+        });
+        break;
+      case "S":
+        setState(() {
+           message = "Stop";
+        });
+        break;
+      default:
+        setState(() {
+           currentSpeed = double.parse(mess).clamp(0, 9);
+           isSended = true;
+        });
       }
     });
   }
@@ -276,25 +301,25 @@ class _BluetoothHomePageState extends State<BluetoothHomePage> {
                     rawX = rawX.clamp(0, 180);
                     rawY = rawY.clamp(0, 180);
 
-                    int x = (rawX - currentX).abs() > 20
+                    int x = (rawX - currentX).abs() > 55
                         ? (rawX > currentX ? 1 : -1)
                         : 0;
-                    int y = (rawY - currentY).abs() > 20
+                    int y = (rawY - currentY).abs() > 55
                         ? (rawY > currentY ? 1 : -1)
                         : 0;
 
-                    if(x == 1 && y == 0) _sendData("R");
-                    if(x == -1 && y == 0) _sendData("L");
-                    if(y == 1 && x == 0) _sendData("F");
-                    if(y == -1 && x == 0) _sendData("B");
+                    if (x == 1 && y == 0) _sendData("R");
+                    if (x == -1 && y == 0) _sendData("L");
+                    if (y == 1 && x == 0) _sendData("F");
+                    if (y == -1 && x == 0) _sendData("B");
                     // cheo tren
-                    if(x == 1 && y == 1) _sendData("J");
-                    if(x == 1 && y == -1) _sendData("I");
+                    if (x == 1 && y == 1) _sendData("J");
+                    if (x == 1 && y == -1) _sendData("I");
                     // cheo duoi
-                    if(x == -1 && y == 1) _sendData("M");
-                    if(x == -1 && y == -1) _sendData("N");
+                    if (x == -1 && y == 1) _sendData("M");
+                    if (x == -1 && y == -1) _sendData("N");
                     // stop
-                    if(x==0 && y==0) _sendData("S");
+                    if (x == 0 && y == 0) _sendData("S");
                   },
                 ),
               ),
@@ -317,7 +342,13 @@ class _BluetoothHomePageState extends State<BluetoothHomePage> {
                     currentSpeed = value;
                     int speedrun = currentSpeed.toInt();
                     String command = "$speedrun";
-                    _sendData(command);
+                    if(isSended){
+                      isSended = false;
+                    }
+                    else{
+                      _sendData(command);
+                    }
+                    
                   });
                 },
               ),
@@ -355,7 +386,7 @@ class _BluetoothHomePageState extends State<BluetoothHomePage> {
                 ),
                 child: SingleChildScrollView(
                   child: Text(
-                    String.fromCharCodes(_receivedData),
+                    message,
                     style: const TextStyle(fontSize: 14),
                   ),
                 ),
